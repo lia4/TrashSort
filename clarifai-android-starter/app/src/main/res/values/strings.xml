@@ -2,6 +2,8 @@
     <string name="clarifai_id">BZ8FbcALIw8rIup0pJVbflD3E8jpxPML344krhh4</string>
     <string name="clarifai_secret">PqJozs2-fcxMC0Le0Xe6k677OOVozx9CDqWeyQqP</string>
 
+    <string name="model_id">ab7e8fef3c3343a88ad5841b8a2975ec</string>
+
     <string name="app_name">SnapTrash</string>
 
     <string name="error_external_storage_permission_not_granted">You must accept this permission so we can upload your images!</string>

@@ -15,6 +15,8 @@ public class RecognizeConceptsActivity extends BaseActivity {
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+
     ButterKnife.<RecognizeView<Concept>>findById(this, R.id.content_root)
         .setModel(App.get().clarifaiClient().getDefaultModels().generalModel());
   }

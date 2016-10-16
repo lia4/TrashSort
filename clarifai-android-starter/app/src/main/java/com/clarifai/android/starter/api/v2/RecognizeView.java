@@ -25,7 +25,9 @@ import android.widget.ViewSwitcher;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import clarifai2.api.ClarifaiClient;
 import clarifai2.api.ClarifaiResponse;
+import clarifai2.api.request.ClarifaiRequest;
 import clarifai2.dto.input.ClarifaiInput;
 import clarifai2.dto.input.image.ClarifaiImage;
 import clarifai2.dto.model.Model;
@@ -36,7 +38,10 @@ import com.clarifai.android.starter.api.v2.activity.BaseActivity;
 import com.clarifai.android.starter.api.v2.adapter.PredictionResultsAdapter;
 import timber.log.Timber;
 
+import org.apache.commons.lang3.ArrayUtils;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +62,16 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
     tagCategories.put("food paper", "compostable");
     tagCategories.put("yard", "compostable");
     tagCategories.put("food", "compostable");
+    tagCategories.put("recycling", "recyclable");
+    tagCategories.put("container", "recyclable");
+    tagCategories.put("bottle", "recyclable");
     tagCategories.put("paper", "recyclable");
     tagCategories.put("metal", "recyclable");
     tagCategories.put("glass", "recyclable");
     tagCategories.put("plastic", "recyclable");
+    tagCategories.put("packaging", "trash");
+    tagCategories.put("can", "recyclable");
+    tagCategories.put("compost", "compostable");
   }
 
   @BindView(R.id.resultsList)
@@ -114,8 +125,18 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
         final ClarifaiResponse<List<ClarifaiOutput<PREDICTION>>> predictions = model.predict()
             .withInputs(ClarifaiInput.forImage(ClarifaiImage.of(imageBytes)))
             .executeSync();
-        if (predictions.isSuccessful()) {
-          return predictions.get();
+        final ClarifaiResponse<List<ClarifaiOutput<Prediction>>> predictionResults = App.get().clarifaiClient().predict("ab7e8fef3c3343a88ad5841b8a2975ec")
+                .withInputs(ClarifaiInput.forImage(ClarifaiImage.of(imageBytes)))
+                .executeSync();
+        if (predictions.isSuccessful() && predictionResults.isSuccessful()) {
+          List<ClarifaiOutput<PREDICTION>> originalList = predictions.get();
+          List<ClarifaiOutput<Prediction>> insertList = predictionResults.get();
+          Log.i(TAG, "Entering for loop");
+          for(int i = 0; i < insertList.get(0).data().size() - 1; i++) {
+            Log.i(TAG, "In For loop");
+            originalList.get(0).data().add(0,(PREDICTION)insertList.get(0).data().get(i));
+          }
+          return originalList;
         } else {
           Timber.e("API call to get predictions was not successful. Info: %s", predictions.getStatus().toString());
           return null;
@@ -137,14 +158,23 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
         String trashType = "trash";
         for(int i = 0; i < predictions.get(0).data().size(); i++) {
           Concept concept = predictions.get(0).data().get(i).asConcept();
-          if(tagCategories.keySet().contains(concept.name()) && concept.value() > 0.9) {
-            trashType =  tagCategories.get(concept.name());
-            if(concept.name().equals("food")) {
-              break;
+          if(tagCategories.keySet().contains(concept.name())) {
+            if(concept.name().equals("compost") || concept.name().equals("can") || concept.name().equals("packaging")) {
+              if(concept.value() > 0.35) {
+                trashType = tagCategories.get(concept.name());
+                break;
+              }
+            }
+            if(concept.value() > 0.9) {
+              trashType = tagCategories.get(concept.name());
+              if (concept.name().equals("food")) {
+                break;
+              }
             }
           }
         }
         resultTrashType.setText(trashType);
+        imageView.setVisibility(VISIBLE);
         imageView.setImageBitmap(BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length));
       }
     }.execute();
@@ -158,8 +188,6 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
         .startActivityForResult(intent, BaseActivity.TAKE_PICTURE);
   }
 
-
-
   private void setBusy(final boolean busy) {
     ClarifaiUtil.unwrapActivity(getContext()).runOnUiThread(new Runnable() {
       @Override
@@ -170,4 +198,41 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
       }
     });
   }
+
+  protected List<ClarifaiOutput<PREDICTION>> insertCustomConcept(List<ClarifaiOutput<PREDICTION>> originalList, List<ClarifaiOutput<Prediction>> insertList) {
+    for(int i = 0; i < insertList.get(0).data().size(); i++) {
+      int begIndex = 0;
+      int endIndex = originalList.get(0).data().size() - 1;
+      int middleIndex = (begIndex + endIndex)/2;
+      while(begIndex != endIndex) {
+        if (endIndex - begIndex == 1) {
+          originalList.get(0).data().add(endIndex, (PREDICTION)insertList.get(0).data().get(i));
+        }
+        if (insertList.get(0).data().get(middleIndex).asConcept().value() > insertList.get(0).data().get(i).asConcept().value()) {
+          endIndex = middleIndex;
+          middleIndex = (begIndex + endIndex) / 2;
+        }
+        if (insertList.get(0).data().get(middleIndex).asConcept().value() <= insertList.get(0).data().get(i).asConcept().value()) {
+          begIndex = middleIndex;
+          middleIndex = (begIndex + endIndex) / 2;
+        }
+      }
+    }
+    return originalList;
+  }
+
+  private class GetImageListConcept extends AsyncTask<Byte, Integer, Object> {
+
+    @Override
+    protected List<ClarifaiOutput<Prediction>> doInBackground(Byte[] params) {
+      byte[] imageBytes = ArrayUtils.toPrimitive(params);
+      final List<ClarifaiOutput<Prediction>> result = App.get().clarifaiClient()
+              .predict("ab7e8fef3c3343a88ad5841b8a2975ec")
+              .withInputs(ClarifaiInput.forImage(ClarifaiImage.of(imageBytes)))
+              .executeSync()
+              .get();
+      return result;
+    }
+  }
+
 }

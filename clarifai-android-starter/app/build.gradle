@@ -12,6 +12,10 @@ android {
     versionName versions.app.name
   }
   lintOptions { lintConfig rootProject.file('gradle/lint.xml') }
+  compileOptions {
+    targetCompatibility 1.7
+    sourceCompatibility 1.7
+  }
 }
 
 dependencies {
@@ -33,6 +37,8 @@ dependencies {
       deps.okHttpLogging,
   )
   compile(deps.materialDrawer) { transitive = true }
+
+  compile 'org.apache.commons:commons-lang3:3.0'
 
   apt(
       deps.butterknifeCompiler,
