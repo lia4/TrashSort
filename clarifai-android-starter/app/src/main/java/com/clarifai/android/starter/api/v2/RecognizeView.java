@@ -72,6 +72,7 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
     tagCategories.put("packaging", "trash");
     tagCategories.put("can", "recyclable");
     tagCategories.put("compost", "compostable");
+    tagCategories.put("drink", "recyclable");
   }
 
   @BindView(R.id.resultsList)
@@ -156,20 +157,20 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
         }
         tagsAdapter.setData(predictions.get(0).data());
         String trashType = "trash";
+        boolean paper = false;
+        int[] category_counter = new int[3];
         for(int i = 0; i < predictions.get(0).data().size(); i++) {
           Concept concept = predictions.get(0).data().get(i).asConcept();
           if(tagCategories.keySet().contains(concept.name())) {
             if(concept.name().equals("compost") || concept.name().equals("can") || concept.name().equals("packaging")) {
-              if(concept.value() > 0.35) {
+              if(concept.value() > 0.40) {
                 trashType = tagCategories.get(concept.name());
                 break;
               }
             }
             if(concept.value() > 0.9) {
               trashType = tagCategories.get(concept.name());
-              if (concept.name().equals("food")) {
-                break;
-              }
+              break;
             }
           }
         }
@@ -198,41 +199,4 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
       }
     });
   }
-
-  protected List<ClarifaiOutput<PREDICTION>> insertCustomConcept(List<ClarifaiOutput<PREDICTION>> originalList, List<ClarifaiOutput<Prediction>> insertList) {
-    for(int i = 0; i < insertList.get(0).data().size(); i++) {
-      int begIndex = 0;
-      int endIndex = originalList.get(0).data().size() - 1;
-      int middleIndex = (begIndex + endIndex)/2;
-      while(begIndex != endIndex) {
-        if (endIndex - begIndex == 1) {
-          originalList.get(0).data().add(endIndex, (PREDICTION)insertList.get(0).data().get(i));
-        }
-        if (insertList.get(0).data().get(middleIndex).asConcept().value() > insertList.get(0).data().get(i).asConcept().value()) {
-          endIndex = middleIndex;
-          middleIndex = (begIndex + endIndex) / 2;
-        }
-        if (insertList.get(0).data().get(middleIndex).asConcept().value() <= insertList.get(0).data().get(i).asConcept().value()) {
-          begIndex = middleIndex;
-          middleIndex = (begIndex + endIndex) / 2;
-        }
-      }
-    }
-    return originalList;
-  }
-
-  private class GetImageListConcept extends AsyncTask<Byte, Integer, Object> {
-
-    @Override
-    protected List<ClarifaiOutput<Prediction>> doInBackground(Byte[] params) {
-      byte[] imageBytes = ArrayUtils.toPrimitive(params);
-      final List<ClarifaiOutput<Prediction>> result = App.get().clarifaiClient()
-              .predict("ab7e8fef3c3343a88ad5841b8a2975ec")
-              .withInputs(ClarifaiInput.forImage(ClarifaiImage.of(imageBytes)))
-              .executeSync()
-              .get();
-      return result;
-    }
-  }
-
 }
