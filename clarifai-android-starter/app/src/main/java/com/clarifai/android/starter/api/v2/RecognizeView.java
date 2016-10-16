@@ -1,9 +1,14 @@
 package com.clarifai.android.starter.api.v2;
 
+import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.CoordinatorLayout;
@@ -11,8 +16,10 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 import android.widget.ViewSwitcher;
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -110,9 +117,12 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
 
   @OnClick(R.id.fab)
   void selectImageToUpload() {
+    Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
     ClarifaiUtil.unwrapActivity(getContext())
-        .startActivityForResult(new Intent(Intent.ACTION_PICK).setType("image/*"), BaseActivity.PICK_IMAGE);
+        .startActivityForResult(intent, BaseActivity.TAKE_PICTURE);
   }
+
+
 
   private void setBusy(final boolean busy) {
     ClarifaiUtil.unwrapActivity(getContext()).runOnUiThread(new Runnable() {

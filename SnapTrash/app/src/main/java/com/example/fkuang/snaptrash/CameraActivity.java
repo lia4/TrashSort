@@ -49,7 +49,7 @@ public class CameraActivity extends Activity {
     private void takePhoto(View v) {
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
         File photo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "picture.jpg");
-        imageUri = Uri.fromFile(photo);
+        imageUri = Uri.fromFile (photo);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
         startActivityForResult(intent, TAKE_PICTURE);
     }

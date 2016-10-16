@@ -3,12 +3,15 @@ package com.clarifai.android.starter.api.v2.activity;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -44,7 +47,7 @@ public abstract class BaseActivity extends AppCompatActivity {
   @BindView(R.id.content_root)
   View root;
 
-  public static final int PICK_IMAGE = 100;
+  public static final int TAKE_PICTURE = 100;
 
   private static final String INTENT_EXTRA_DRAWER_POSITION = "IntentExtraDrawerPosition";
 
@@ -114,7 +117,7 @@ public abstract class BaseActivity extends AppCompatActivity {
       return;
     }
     switch (requestCode) {
-      case PICK_IMAGE:
+      case TAKE_PICTURE:
         final byte[] imageBytes = retrieveSelectedImage(data);
         if (imageBytes != null) {
           final List<HandlesPickImageIntent> imageHandlers =
@@ -148,22 +151,12 @@ public abstract class BaseActivity extends AppCompatActivity {
     Bitmap bitmap = null;
     try {
       inStream = getContentResolver().openInputStream(data.getData());
-      bitmap = BitmapFactory.decodeStream(inStream);
+      bitmap = (Bitmap) data.getExtras().get("data");
       final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
       bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
       return outStream.toByteArray();
     } catch (FileNotFoundException e) {
       return null;
-    } finally {
-      if (inStream != null) {
-        try {
-          inStream.close();
-        } catch (IOException ignored) {
-        }
-      }
-      if (bitmap != null) {
-        bitmap.recycle();
-      }
     }
   }
 
