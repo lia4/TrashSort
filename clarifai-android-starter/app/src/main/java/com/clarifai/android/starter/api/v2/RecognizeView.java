@@ -19,6 +19,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewSwitcher;
 import butterknife.BindView;
@@ -29,12 +30,16 @@ import clarifai2.dto.input.ClarifaiInput;
 import clarifai2.dto.input.image.ClarifaiImage;
 import clarifai2.dto.model.Model;
 import clarifai2.dto.model.output.ClarifaiOutput;
+import clarifai2.dto.prediction.Concept;
 import clarifai2.dto.prediction.Prediction;
 import com.clarifai.android.starter.api.v2.activity.BaseActivity;
 import com.clarifai.android.starter.api.v2.adapter.PredictionResultsAdapter;
 import timber.log.Timber;
 
+import java.io.FileNotFoundException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -42,6 +47,21 @@ import java.util.List;
  * upon, along with the list of recognitions for that image
  */
 public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLayout implements HandlesPickImageIntent {
+
+  private static final String TAG = "CameraActivity";
+
+  public static final Map<String, String> tagCategories;
+
+  static {
+    tagCategories = new HashMap<>();
+    tagCategories.put("food paper", "compostable");
+    tagCategories.put("yard", "compostable");
+    tagCategories.put("food", "compostable");
+    tagCategories.put("paper", "recyclable");
+    tagCategories.put("metal", "recyclable");
+    tagCategories.put("glass", "recyclable");
+    tagCategories.put("plastic", "recyclable");
+  }
 
   @BindView(R.id.resultsList)
   RecyclerView resultsList;
@@ -54,6 +74,11 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
 
   @BindView(R.id.fab)
   View fab;
+
+  @BindView(R.id.resultTrashType)
+  TextView resultTrashType;
+
+  CSVParser csv = new CSVParser();
 
   @Nullable
   private Model<PREDICTION> model;
@@ -109,6 +134,17 @@ public class RecognizeView<PREDICTION extends Prediction> extends CoordinatorLay
           return;
         }
         tagsAdapter.setData(predictions.get(0).data());
+        String trashType = "trash";
+        for(int i = 0; i < predictions.get(0).data().size(); i++) {
+          Concept concept = predictions.get(0).data().get(i).asConcept();
+          if(tagCategories.keySet().contains(concept.name()) && concept.value() > 0.9) {
+            trashType =  tagCategories.get(concept.name());
+            if(concept.name().equals("food")) {
+              break;
+            }
+          }
+        }
+        resultTrashType.setText(trashType);
         imageView.setImageBitmap(BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length));
       }
     }.execute();

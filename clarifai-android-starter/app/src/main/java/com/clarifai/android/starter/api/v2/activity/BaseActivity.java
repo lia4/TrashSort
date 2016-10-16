@@ -153,7 +153,7 @@ public abstract class BaseActivity extends AppCompatActivity {
       inStream = getContentResolver().openInputStream(data.getData());
       bitmap = (Bitmap) data.getExtras().get("data");
       final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-      bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
+      bitmap.compress(Bitmap.CompressFormat.PNG, 100, outStream);
       return outStream.toByteArray();
     } catch (FileNotFoundException e) {
       return null;
